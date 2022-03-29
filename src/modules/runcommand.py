@@ -6,10 +6,7 @@ def run(**args):
     op = subprocess.Popen(command, shell=True,
                           stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
-    output = op.stdout.read()
-    output_error = op.stderr.read()
+    output = op.stdout.read().decode() or ""
+    output_error = op.stderr.read().decode() or ""
 
-    if(not output and not output_error):
-        return b"Done!"
-
-    return output + output_error
+    return {"output": output, "output_error": output_error}

